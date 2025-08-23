@@ -125,6 +125,18 @@ public class Main implements EventListener {
         }));
 
         server = Runtime.getRuntime().exec(cfg.cmdline);
+
+        Thread x = new Thread(() -> {
+            Scanner scanner = new Scanner(System.in);
+            while(scanner.hasNextLine()) {
+                synchronized (writer) {
+                    writer.println(scanner.nextLine());
+                    writer.flush();
+                }
+            }
+        });
+        x.start();
+
         writer = new PrintWriter(new OutputStreamWriter(server.getOutputStream()));
 
 
@@ -200,6 +212,7 @@ public class Main implements EventListener {
 
         channel.sendMessage(":x: Server stopped!").complete();
         jda.shutdown();
+        Runtime.getRuntime().exit(0);
     }
 
     private String resolveWebhook(String webhook) {
@@ -238,8 +251,10 @@ public class Main implements EventListener {
                     txt = txt.replace("%message%", recv.getMessage().getContentStripped());
                     txt = txt.replace("%id%", recv.getAuthor().getId());
 
-                    writer.println(txt);
-                    writer.flush();
+                    synchronized (writer) {
+                        writer.println(txt);
+                        writer.flush();
+                    }
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
