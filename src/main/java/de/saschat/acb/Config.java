@@ -43,6 +43,8 @@ public class Config {
     public String advancementPattern = ": (?<name>[^ ]{3,16}) has made the advancement \\[(?<advancement>.*)\\]$";
     @Expose
     public String mePattern = ": (?<text>\\* .*)$";
+    @Expose
+    public String emojiPattern = ":(?<emoji>[^ ]*):";
 
     private String path;
 

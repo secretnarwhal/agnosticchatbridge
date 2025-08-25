@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Webhook;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.RichCustomEmoji;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
@@ -25,9 +26,7 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +41,7 @@ public class Main implements EventListener {
     Process server;
     PrintWriter writer;
     Config cfg;
+    JDA jda;
 
     public void main(String path) throws InterruptedException, IOException {
         cfg = Config.load(path);
@@ -58,7 +58,7 @@ public class Main implements EventListener {
             return;
         }
 
-        JDA jda = JDABuilder.createDefault(cfg.token)
+        jda = JDABuilder.createDefault(cfg.token)
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .addEventListeners(this)
                 .build();
@@ -165,9 +165,9 @@ public class Main implements EventListener {
                     String mcName = msg.group("name");
                     if (mcMsg != null && mcName != null) {
                         Message dcMsg = new Message();
-                        dcMsg.setAvatarUrl("https://mc-heads.net/head/" + mcName);
+                        dcMsg.setAvatarUrl(getAvatar(mcName));
                         dcMsg.setUsername(mcName);
-                        dcMsg.setContent(mcMsg);
+                        dcMsg.setContent(processMessageM2D(mcMsg));
                         webhookManager.setMessage(dcMsg);
                         webhookManager.exec();
                     }
@@ -215,6 +215,43 @@ public class Main implements EventListener {
         Runtime.getRuntime().exit(0);
     }
 
+    private String processMessageM2D(String mcMsg) {
+        Pattern pattern = Pattern.compile(cfg.emojiPattern);
+        String msg = mcMsg;
+        Matcher matcher = pattern.matcher(msg);
+        int offset = 0;
+        while(offset < msg.length() && matcher.find(offset)) {
+            String emoji = matcher.group("emoji");
+            List<RichCustomEmoji> str = jda.getEmojisByName(emoji, true);
+            if(!str.isEmpty()) {
+                RichCustomEmoji richCustomEmoji = str.get(0);
+
+                String data = "<";
+                data += richCustomEmoji.isAnimated() ? "a" : "";
+                data += ":";
+                data += richCustomEmoji.getName();
+                data += ":";
+                data += richCustomEmoji.getId();
+                data += ">";
+
+                String pre = msg.substring(0, matcher.start());
+                String post = msg.substring(matcher.end());
+
+                msg = pre + data + post;
+                offset += data.length() - emoji.length();
+                matcher = pattern.matcher(msg);
+
+            }
+
+        }
+        return msg;
+    }
+
+    public static String getAvatar(String username) {
+        String resolved = UUIDCache.resolveUUID(username);
+        if(resolved == null) resolved = username;
+        return "https://mc-heads.net/head/" + resolved;
+    }
     private String resolveWebhook(String webhook) {
         try {
             URL url = new URL(webhook);
