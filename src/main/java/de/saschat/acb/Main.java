@@ -128,7 +128,7 @@ public class Main implements EventListener {
 
         Thread x = new Thread(() -> {
             Scanner scanner = new Scanner(System.in);
-            while(scanner.hasNextLine()) {
+            while (scanner.hasNextLine()) {
                 synchronized (writer) {
                     writer.println(scanner.nextLine());
                     writer.flush();
@@ -154,7 +154,7 @@ public class Main implements EventListener {
                 System.out.println(line);
 
                 Matcher meMatcher = me.matcher(line);
-                if(meMatcher.find()) {
+                if (meMatcher.find()) {
                     channel.sendMessage(meMatcher.group("text")).setAllowedMentions(List.of()).complete();
                     continue;
                 }
@@ -220,10 +220,10 @@ public class Main implements EventListener {
         String msg = mcMsg;
         Matcher matcher = pattern.matcher(msg);
         int offset = 0;
-        while(offset < msg.length() && matcher.find(offset)) {
+        while (offset < msg.length() && matcher.find(offset)) {
             String emoji = matcher.group("emoji");
             List<RichCustomEmoji> str = jda.getEmojisByName(emoji, true);
-            if(!str.isEmpty()) {
+            if (!str.isEmpty()) {
                 RichCustomEmoji richCustomEmoji = str.get(0);
 
                 String data = "<";
@@ -234,14 +234,16 @@ public class Main implements EventListener {
                 data += richCustomEmoji.getId();
                 data += ">";
 
+
                 String pre = msg.substring(0, matcher.start());
                 String post = msg.substring(matcher.end());
 
                 msg = pre + data + post;
-                offset += data.length() - emoji.length();
+                offset = matcher.end();
                 matcher = pattern.matcher(msg);
 
-            }
+            } else
+                offset = matcher.end();
 
         }
         return msg;
@@ -249,9 +251,10 @@ public class Main implements EventListener {
 
     public static String getAvatar(String username) {
         String resolved = UUIDCache.resolveUUID(username);
-        if(resolved == null) resolved = username;
+        if (resolved == null) resolved = username;
         return "https://mc-heads.net/head/" + resolved;
     }
+
     private String resolveWebhook(String webhook) {
         try {
             URL url = new URL(webhook);
